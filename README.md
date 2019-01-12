@@ -34,7 +34,7 @@ def generate_data():
   train_data = []
   for file in os.listdir('data/train'):
     img = cv2.imread(os.path.join('data/train',file),0)
-    img = cv2.resize(img,(128,128)
+    img = cv2.resize(img,(56,56))
     if(file[0:3]=='cat'):
       train_data.append([img,'0'])
     else:
@@ -67,27 +67,62 @@ train_x = np.asarray(train_x)
 train_y = np.asarray(train_y)
 ```
 
-#### Step 4: Resizing the data
+#### Step 4: Resizing the data:
 ```
 train_x.shape, train_y.shape
 ```
+((25000, 56, 56), (25000,))
+- Train data should be a 4D tensor.
+- So, we will resize it.
+```
+train_x = train_x.resize(-1,56,56,1)
+```
+- The first parameter -1 tells that it can anything. Therefore its value is calculated automatically.
+
+Now, we will use 'pd.get_dummies()' function to create create target vector.
+```
+train_y = pd.get_dummies(train_y)
+```
+```
+train_x.shape, train_y.shape
+```
+((25000, 56, 56, 1), (25000,2))
+
+#### Step 5: Initializing variables and placeholders:
+```
+epoch = 50
+learning_rate = 0.01
+batch_size = 64
+n_classes = 2
+```
+
+**Placeholder**: Something which we use to feed input.
+```
+x = tf.placeholder(tf.float32,[None,56,56,1]) # None will be automatically replaced by batch_size
+y = tf.placeholder(tf.float32,[None,n_classes]) # None will be replaced by number of neurons in the hidden layer.
+```
+None paramter tells that it can be anything.
+
+#### Step 6: Creating CNN:
+```
+def conv2d(x,w,b,stride=1):
+  x = tf.nn.conv2d(x,w,strides=[1,stride,stride,1],padding='SAME')
+  x = tf.nn.bias_add(x,b)
+  return tf.nn.relu(x)
+
+def max_pool(x,stride=2):
+  return tf.nn.max_pool(x,ksize=[1,stride,stride,1],strides=[1,stride,stride,1],padding='SAME')
+```  
 
 
 
-1. Numbered
-2. List
+
+
+
+
 
 **Bold** and _Italic_ and `Code` text
 
 [Link](url) and ![Image](src)
 
 
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/gagan0906/portfolio/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
