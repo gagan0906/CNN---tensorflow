@@ -114,15 +114,90 @@ def max_pool(x,stride=2):
   return tf.nn.max_pool(x,ksize=[1,stride,stride,1],strides=[1,stride,stride,1],padding='SAME')
 ```  
 
+**Initializing weights and biases**
+```
+weight={
+    'wc1':tf.get_variable('w0',shape=(3,3,1,32),initializer=tf.contrib.layers.xavier_initializer()),
+    'wc2':tf.get_variable('w1',shape=(3,3,32,64),initializer=tf.contrib.layers.xavier_initializer()),
+    'wc3':tf.get_variable('w2',shape=(3,3,64,64),initializer=tf.contrib.layers.xavier_initializer()),
+    'wc4':tf.get_variable('w3',shape=(3,3,64,128),initializer=tf.contrib.layers.xavier_initializer()),
+    'wd0':tf.get_variable('wde0',shape=(4*4*128,128),initializer=tf.contrib.layers.xavier_initializer()),
+    'wd1':tf.get_variable('wde1',shape=(128,2),initializer=tf.contrib.layers.xavier_initializer())
+}
 
+biases={
+    'bc1':tf.get_variable('b0',shape=(32),initializer=tf.contrib.layers.xavier_initializer()),
+    'bc2':tf.get_variable('b1',shape=(64),initializer=tf.contrib.layers.xavier_initializer()),
+    'bc3':tf.get_variable('b2',shape=(64),initializer=tf.contrib.layers.xavier_initializer()),
+    'bc4':tf.get_variable('b3',shape=(128),initializer=tf.contrib.layers.xavier_initializer()),
+    'bd0':tf.get_variable('bde0',shape=(128),initializer=tf.contrib.layers.xavier_initializer()),
+    'bd1':tf.get_variable('bde1',shape=(2),initializer=tf.contrib.layers.xavier_initializer())
+}
+```
+shape = (3,3,1,32)
+- 3,3 is the filter size.
+- 1 is the depth(grayscale), for coloured it will be 3.
+- 32 means the number of filters.
 
-
-
-
-
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-
+Now, we will create the model
+```
+def conv_net(x,weight,biases):
+    conv1 = conv2d(x,weight['wc1'],biases['bc1'])
+    conv1 = max_pool(conv1,2)
+    
+    conv2 = conv2d(conv1,weight['wc2'],biases['bc2'])
+    conv2 = max_pool(conv2,2)
+    
+    conv3 = conv2d(conv2,weight['wc3'],biases['bc3'])
+    conv3 = max_pool(conv3,2)
+    
+    conv4 = conv2d(conv3,weight['wc4'],biases['bc4'])
+    conv4 = max_pool(conv4,2)
+    
+    fc1 = tf.reshape(conv4, [-1, weight['wd0'].get_shape().as_list()[0]])
+    
+    fc1 = tf.add(tf.matmul(fc1, weight['wd0']), biases['bd0'])
+    fc1 = tf.nn.relu(fc1)
+    # Output, class prediction
+    # finally we multiply the fully connected layer with the weights and add a bias term. 
+    out = tf.add(tf.matmul(fc1, weight['wd1']), biases['bd1'])
+    
+    return out
+```
+Creating cost function and optimization function
+```
+pred = conv_net(x,weight,biases)
+cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=pred,labels=y))
+optimizer = tf.train.AdamOptimizer(lr).minimize(cost)
+```
+```
+correct_prediction = tf.equal(tf.argmax(pred,1),tf.argmax(y,1))
+accuracy = tf.reduce_mean(tf.cast(correct_prediction,tf.float32))
+```
+```
+init = tf.global_variables_initializer()
+```
+```
+```
+with tf.Session() as sess:
+    sess.run(init)
+    
+    training_loss = []
+    test_loss = []
+    training_accuracy = []
+    test_accuracy = []
+    
+    for _ in range(epochs):
+        for batch in range(len(train_X)//batch_size):
+            batch_x = train_X[batch*batch_size:min((batch+1)*batch_size,len(train_X))]
+            batch_y = train_y[batch*batch_size:min((batch+1)*batch_size,len(train_y))]
+            
+            sess.run(optimizer,feed_dict={x:batch_x,y:batch_y})
+            loss,acc = sess.run([cost,accuracy],feed_dict={x:batch_x,y:batch_y})
+            
+            print("Loss= " + \
+                          "{:.6f}".format(loss) + ", Training Accuracy= " + \
+                          "{:.5f}".format(acc))
+  ```      
+       
 
